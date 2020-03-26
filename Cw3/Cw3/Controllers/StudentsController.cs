@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using Cw3.DAL;
@@ -20,9 +21,59 @@ namespace Cw3.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetStudents(string orderBy)
+        public IActionResult GetStudents([FromServices] IDbService dbService)
         {
-            return Ok(_dbService.GetStudents());
+            var list = new List<Student>();
+
+            using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18508;Integrated Security=True"))
+            using(var com = new SqlCommand())
+            {
+                com.Connection = client;
+                com.CommandText = "select * from Student";
+                client.Open();
+                SqlDataReader dr = com.ExecuteReader();
+
+                while (dr.Read())
+                {
+                    var st = new Student();
+                    st.IndexNumber = dr["IndexNumber"].ToString();
+                    st.FirstName = dr["FirstName"].ToString();
+                    st.LastName = dr["LastName"].ToString();
+                    list.Add(st);
+                }
+            }
+
+
+            return Ok(list);
+        }
+
+        [HttpGet("{id}")]
+        public IActionResult GetStudent(string id)
+        {
+            using (SqlConnection con = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18508;Integrated Security=True"))
+            using (SqlCommand com = new SqlCommand())
+            {
+                com.Connection = con;
+                com.CommandText = "select * from student where indexnumber=@index";
+
+              
+                com.Parameters.AddWithValue("index", id);
+
+                con.Open();
+                var dr = com.ExecuteReader();
+                if (dr.Read())
+                {
+                    var st = new Student();
+
+                    st.IndexNumber = dr["IndexNumber"].ToString();
+                    st.FirstName = dr["FirstName"].ToString();
+                    st.LastName = dr["LastName"].ToString();
+                    return Ok(st);
+                }
+
+            }
+
+            return NotFound();
         }
 
         [HttpPost]
